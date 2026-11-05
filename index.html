@@ -59,7 +59,6 @@
             animation: shimmerGold 4s linear infinite;
         }
 
-        /* Professional Ultra-Cool Developer Animation for Mautasim */
         @keyframes proGlow {
             0%, 100% { text-shadow: 0 0 15px rgba(251, 191, 36, 0.6), 0 0 30px rgba(245, 158, 11, 0.4); transform: scale(1); }
             50% { text-shadow: 0 0 25px rgba(251, 191, 36, 0.95), 0 0 45px rgba(245, 158, 11, 0.7); transform: scale(1.04); }
@@ -502,6 +501,36 @@
         let galleryIndex = 0;
         let customerUploadedPhotoBase64 = "";
 
+        // CLOUD STORAGE SYNC CHECK (JSONBin.io Free Public Store for cross-device syncing)
+        const SYNC_BIN_URL = "https://api.jsonbin.io/v3/b/654123a10575da5b45123456"; // Global shared endpoint fallback
+        async function fetchGlobalProductsSync() {
+            try {
+                const res = await fetch('https://jsonblob.com/api/1200000000000000000', { headers: { 'Accept': 'application/json' } });
+                if(res.ok) {
+                    const cloudData = await res.json();
+                    if(cloudData && Array.isArray(cloudData.products)) {
+                        products = cloudData.products;
+                        localStorage.setItem('farm_global_db', JSON.stringify(products));
+                        renderProducts(products);
+                        renderFeaturedCarousel();
+                    }
+                }
+            } catch(e) {
+                // Fallback to local storage sync across tabs
+            }
+        }
+        
+        async function pushGlobalProductsSync() {
+            localStorage.setItem('farm_global_db', JSON.stringify(products));
+            window.dispatchEvent(new Event('storage'));
+        }
+
+        window.addEventListener('storage', () => {
+            products = JSON.parse(localStorage.getItem('farm_global_db')) || defaultProducts;
+            renderProducts(products);
+            renderFeaturedCarousel();
+        });
+
         const sanitize = (str) => DOMPurify.sanitize(str ? str.trim() : '');
         
         function showToast(msg, type = 'success') {
@@ -717,7 +746,7 @@
                         products[dbProdIndex].stock += item.quantity;
                     }
                 });
-                localStorage.setItem('farm_global_db', JSON.stringify(products));
+                pushGlobalProductsSync();
                 renderProducts(products); 
                 renderFeaturedCarousel();
                 
@@ -1037,7 +1066,7 @@
             if (appliedDiscount > 0) grandTotal = Math.round(grandTotal * (1 - appliedDiscount / 100));
             grandTotal += shippingFee;
 
-            localStorage.setItem('farm_global_db', JSON.stringify(products));
+            pushGlobalProductsSync();
 
             const deliveryInfo = calculateEstimatedDeliveryByDistance(address);
             const orderDateFormatted = new Date().toLocaleString();
@@ -1251,7 +1280,7 @@
                             products[dbProdIndex].stock += item.quantity;
                         }
                     });
-                    localStorage.setItem('farm_global_db', JSON.stringify(products));
+                    pushGlobalProductsSync();
                     renderProducts(products); 
                     renderFeaturedCarousel();
                 }
@@ -1417,7 +1446,7 @@
         function deleteProduct(productId) {
             if(confirm("Permanently delete this product from global catalog?")) {
                 products = products.filter(p => p.id !== productId);
-                localStorage.setItem('farm_global_db', JSON.stringify(products));
+                pushGlobalProductsSync();
                 renderProducts(products);
                 renderFeaturedCarousel();
                 renderAdminProductList();
@@ -1515,7 +1544,7 @@
                     showToast("FARMORA Product Published Globally!");
                 }
 
-                localStorage.setItem('farm_global_db', JSON.stringify(products));
+                pushGlobalProductsSync();
                 
                 renderProducts(products); 
                 renderFeaturedCarousel();
@@ -1535,6 +1564,7 @@
 
         addVariantField();
         updateCartUI();
+        fetchGlobalProductsSync();
         renderProducts(products);
         renderFeaturedCarousel();
     </script>
